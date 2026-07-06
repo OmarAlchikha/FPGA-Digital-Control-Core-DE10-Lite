@@ -1,0 +1,6 @@
+# Quartus Prime project file — open this in Quartus Prime Lite (any recent
+# version; tested conventions target 18.1+). All real settings live in the
+# .qsf next to it.
+
+QUARTUS_VERSION = "18.1"
+PROJECT_REVISION = "de10_lite_control_core"
