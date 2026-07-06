@@ -216,3 +216,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- simulation artifacts (Icarus Verilog) ---
+testbench/tb_pwm
+testbench/tb_quad
+*.vcd
+
+# --- Quartus build artifacts ---
+synthesis/output_files/
+synthesis/db/
+synthesis/incremental_db/
+synthesis/simulation/
+synthesis/*.qws
+synthesis/*.rpt
+synthesis/*.summary
+synthesis/c5_pin_model_dump.txt
