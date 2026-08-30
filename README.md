@@ -191,56 +191,15 @@ with every pin assignment annotated with its physical header pin, and an
 [`synthesis/README.md`](synthesis/README.md) for the build/program steps and
 the full pin map.
 
-## What you need to do on your end
+## Hardware verification
 
-### 1. Build and load onto the DE10-Lite
-
-Open `synthesis/de10_lite_control_core.qpf` in Quartus Prime Lite (with
-MAX 10 support installed), compile, and program the `.sof` over the on-board
-USB-Blaster (`Tools → Programmer`). Step-by-step in
-[`synthesis/README.md`](synthesis/README.md).
-
-### 2. Verify the PWM with a scope / logic analyzer
-
-Probe **GPIO header JP1 pin 3** (`PWM_OUT`) against **pin 12** (GND):
-
-- You should see a **20 kHz** carrier (50 µs period).
-- Duty follows `SW[9:0]` as a 10-bit binary number: all down = flat 0 V,
-  all up = flat 3.3 V, `SW9` alone up = 50%.
-- Flip switches while watching: the edge should move **without any runt
-  pulses** — that's the double-buffering.
-- On a logic analyzer, measure high-time: it should be
-  `duty/1024 × 50 µs` to within one 20 ns clock tick.
-
-`MOTOR_DIR` is on **pin 4**; it follows `KEY1`.
-
-### 3. Wire up an actual encoder
-
-| Encoder wire | Connect to | Note |
-|---|---|---|
-| Channel A | JP1 **pin 1** (`ENC_A`) | weak pull-up enabled on-chip |
-| Channel B | JP1 **pin 2** (`ENC_B`) | weak pull-up enabled on-chip |
-| GND | JP1 **pin 12** | common ground is mandatory |
-| VCC | JP1 **pin 29** (+3.3 V) | see warning below |
-
-> **⚠ 3.3 V only.** MAX 10 I/O is **not 5 V tolerant**. A bare mechanical
-> encoder (e.g. KY-040 module *without* its pull-ups to 5 V) is fine on
-> 3.3 V. A 5 V-supplied optical/magnetic encoder needs a level shifter or a
-> resistor divider (e.g. 2.2 kΩ series / 3.3 kΩ to GND) on A and B. If you
-> use the motor+encoder from Projects 2/4 and its encoder board is 5 V,
-> divide it down.
-
-Then: turn the shaft and watch `LEDR[9:0]` count up in binary one direction
-and down (two's complement, LEDs mostly on) the other. One full turn of a
-600 PPR encoder moves the count by 2400 — that's the 4x decoding. If the
-direction is backwards from what you want, swap the A and B wires.
-
-### 4. (Optional) drive the actual motor
-
-`PWM_OUT` + `MOTOR_DIR` map directly onto an H-bridge module's PWM/DIR
-inputs (the same driver from Project 2 works — its inputs are logic-level
-and 3.3 V-compatible on common boards; check yours). Power the motor from
-its own supply, **never** from the header's 5 V pin, and keep grounds
-common. At that point the full Project 2 + Project 4 signal chain exists on
-the FPGA, and the switches are your open-loop duty command — the PID that
-closes `count → duty` is the follow-on project.
+Beyond simulation, bringing this up on real DE10-Lite hardware means:
+programming the `.sof` over the on-board USB-Blaster (steps in
+[`synthesis/README.md`](synthesis/README.md)); probing `PWM_OUT` (GPIO
+header JP1 pin 3) to confirm the 20 kHz carrier and glitch-free
+double-buffered duty updates; and wiring a real quadrature encoder to
+`ENC_A`/`ENC_B` (JP1 pins 1–2), noting that MAX 10 I/O is **3.3 V only** and
+not 5 V-tolerant — a 5 V encoder needs a level shifter or resistor divider.
+With `PWM_OUT` + `MOTOR_DIR` driving an H-bridge, the full PWM-to-motor and
+encoder-to-count signal chain exists on the FPGA, which is what the
+follow-on in-fabric PID closes the loop on.
