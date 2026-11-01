@@ -1,12 +1,15 @@
 # FPGA Digital Control Core — DE10-Lite
 
 Parameterized **PWM generator** and **quadrature encoder decoder** in Verilog
-for the Intel/Terasic DE10-Lite (MAX 10). These are the two peripherals every
-motor control loop stands on — and this repo is the tie-back project: it
-re-implements, in hardware, exactly the two jobs the Arduino did in
-**Project 2** (PWM drive to the H-bridge) and **Project 4** (encoder feedback
-for closed-loop control), so the loop can eventually close *inside the FPGA*
-instead of in Arduino firmware.
+for the Intel/Terasic DE10-Lite (MAX 10), designed as the digital core for a
+motor-control loop.
+
+## Status
+
+- **Simulation:** simulated and self-checked in Icarus Verilog; 23/23 checks
+  pass (`make` in `testbench/`).
+- **Synthesis:** Quartus Prime Lite project included in `synthesis/`.
+- **Hardware:** board bring-up on the DE10-Lite not done yet.
 
 ```
 ├── rtl/                          synthesizable Verilog
@@ -23,40 +26,6 @@ instead of in Arduino firmware.
 │   └── README.md                 build + program instructions, full pin map
 └── docs/waves/                   waveform images from the testbench runs
 ```
-
-## How this ties back to Projects 2 and 4
-
-On the Arduino builds, the control loop looked like this:
-
-```
-Project 2:  analogWrite() ──► H-bridge ──► motor            (open/closed-loop drive)
-Project 4:  encoder ──► pin-change ISRs ──► count ──► PID ──► analogWrite()
-```
-
-That architecture has two ceilings baked in:
-
-1. **PWM quality** — `analogWrite()` on an Uno is ~490 Hz/976 Hz at 8 bits.
-   Audible whine, coarse torque quantization, and the timer is shared with
-   `millis()`.
-2. **Encoder throughput** — every quadrature edge costs an interrupt. Spin the
-   motor fast enough (or add a finer encoder) and the ISR load starves the
-   loop, drops edges, and the position estimate silently corrupts.
-
-This project moves both jobs into fabric, where they cost *zero* processor
-time and run at 50 MHz:
-
-| Arduino (Projects 2/4) | This core |
-|---|---|
-| `analogWrite()`, ~490 Hz, 8-bit | `pwm_generator`, 20 kHz (any freq), 10-bit (any width), glitch-free duty updates |
-| Pin-change ISR counting, 1x/2x decode, edges lost under load | `quadrature_decoder`, full 4x decode, never misses an edge, hardware glitch filter, illegal-transition detector |
-| Loop rate limited to a few kHz | `period_start` strobe lets a loop run once per PWM period (20 kHz) with zero jitter |
-
-The **next step** this enables: drop a PID block between `count` and `duty`
-in `top_de10_lite.v` — the decoder's output is the feedback term, the PWM's
-input is the control effort, and `period_start` is the sample clock. Same
-loop as Project 4, closed digitally in fabric instead of on the Arduino. The
-Arduino (or the Nios II soft core, or a PC over UART) then only supplies
-*setpoints* rather than running the loop.
 
 ## The modules
 
@@ -99,8 +68,7 @@ passing any encoder slower than ~250k edges/s. Decoding is **full 4x**
 - signed position `count`, direction flag `dir` (A-leads-B = up),
 - a one-clock `step` pulse per counted edge (feeds a velocity estimator),
 - an `err` pulse when both channels change in one filtered sample — a
-  skipped state, which the Arduino ISR version would have silently absorbed
-  as position drift. Here it's observable.
+  skipped state that would otherwise show up only as silent position drift.
 
 ### `rtl/top_de10_lite.v` — hardware demo wrapper
 
@@ -185,21 +153,17 @@ the peak; one count per edge (4x) in both directions:
 
 ## Synthesis
 
-`synthesis/` holds a complete Quartus Prime Lite project (`.qpf`, `.qsf`
+`synthesis/` holds a Quartus Prime Lite project (`.qpf`, `.qsf`
 with every pin assignment annotated with its physical header pin, and an
 `.sdc` with the 50 MHz clock constraint). See
 [`synthesis/README.md`](synthesis/README.md) for the build/program steps and
 the full pin map.
 
-## Hardware verification
+## Hardware bring-up (not done yet)
 
-Beyond simulation, bringing this up on real DE10-Lite hardware means:
-programming the `.sof` over the on-board USB-Blaster (steps in
-[`synthesis/README.md`](synthesis/README.md)); probing `PWM_OUT` (GPIO
-header JP1 pin 3) to confirm the 20 kHz carrier and glitch-free
-double-buffered duty updates; and wiring a real quadrature encoder to
-`ENC_A`/`ENC_B` (JP1 pins 1–2), noting that MAX 10 I/O is **3.3 V only** and
-not 5 V-tolerant — a 5 V encoder needs a level shifter or resistor divider.
-With `PWM_OUT` + `MOTOR_DIR` driving an H-bridge, the full PWM-to-motor and
-encoder-to-count signal chain exists on the FPGA, which is what the
-follow-on in-fabric PID closes the loop on.
+Planned steps: compile in Quartus and check timing, program the `.sof` over
+the on-board USB-Blaster (steps in [`synthesis/README.md`](synthesis/README.md)),
+probe `PWM_OUT` (GPIO header JP1 pin 3) to confirm the 20 kHz carrier and
+glitch-free duty updates, and wire a quadrature encoder to `ENC_A`/`ENC_B`
+(JP1 pins 1–2). MAX 10 I/O is **3.3 V only** and not 5 V-tolerant, so a 5 V
+encoder needs a level shifter or resistor divider.
