@@ -2,7 +2,11 @@
 
 A PWM generator and a quadrature encoder decoder written in Verilog for the Terasic DE10-Lite board (Intel MAX 10). These are the two pieces you need before you can close a motor control loop in hardware.
 
-> **Status:** RTL plus self-checking testbenches in Icarus Verilog, **23/23 checks pass**. The Quartus project is set up with a pin map and timing constraints, but I haven't programmed it onto the board yet.
+**Highlights**
+- Wrote synthesizable RTL for a 20 kHz, 10-bit PWM generator with glitch-free duty updates and true 0 %/100 %
+- Built a 4× quadrature decoder with input synchronizers, a glitch filter and an illegal-transition error flag
+- Verified both with self-checking Icarus Verilog testbenches against independent models: **23/23 checks pass**
+- Set up the Quartus project with a full pin map and timing constraints
 
 ![PWM duty sweep](docs/waves/pwm_duty_sweep.png)
 
@@ -31,10 +35,11 @@ Both testbenches check the design against an independent model and print PASS/FA
 
 Modeling asynchronous encoder glitches that are shorter than a clock cycle. That's the reason I used Icarus (event-driven, `#delay` timing) instead of Verilator. More detail is in `docs/design-notes.md`.
 
-## What I'd improve next
+## Project status
 
-1. Program the board and check the PWM on a scope
-2. Add a PI/PID block between the encoder count and the PWM duty so the whole loop runs in the FPGA
+- **Done:** RTL, self-checking testbenches (23/23 passing), waveform plots, Quartus project files
+- **Not on hardware yet:** the design hasn't been compiled in Quartus or programmed onto the board
+- **Next:** program the board and check the PWM on a scope, then add a PI/PID block between the encoder count and the PWM duty so the whole loop runs in the FPGA
 
 ## How to run it
 
