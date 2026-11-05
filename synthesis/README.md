@@ -1,7 +1,10 @@
 # Synthesis — Quartus Prime project for the DE10-Lite
 
-The three files in this directory are a complete, ready-to-open Quartus
-project:
+The three files in this directory are the Quartus project files.
+
+> **Status:** prepared but not yet compiled or programmed onto a board. The
+> steps below are the intended flow; resource and timing numbers aren't known yet.
+
 
 | File | Purpose |
 |---|---|
@@ -15,7 +18,7 @@ project:
    device support** selected in the installer.
 2. `File → Open Project…` → select `de10_lite_control_core.qpf`.
 3. `Processing → Start Compilation` (or double-click *Compile Design*).
-   The design is tiny (~150 logic elements) and compiles in about a minute.
+   The design is small, so it should compile quickly (not yet confirmed).
 4. Output bitstream: `output_files/de10_lite_control_core.sof`.
 
 ## Program the board

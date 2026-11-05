@@ -17,7 +17,7 @@ firmware.
 │   ├── tb_quadrature_decoder.v
 │   ├── Makefile                  `make` runs everything
 │   └── plot_waves.py             renders the waveform PNGs below from the VCDs
-├── synthesis/                    complete Quartus Prime project
+├── synthesis/                    Quartus Prime project files (prepared, not yet compiled)
 │   ├── de10_lite_control_core.qpf / .qsf / .sdc
 │   └── README.md                 build + program instructions, full pin map
 └── docs/waves/                   waveform images from the testbench runs
@@ -121,7 +121,7 @@ zero), `dir` flag both ways, sub-filter glitches on A and B ignored, a
 **bouncing edge counted exactly once**, an illegal two-bit transition
 pulsing `err` with the count held, and correct counting after recovery.
 
-### Waveforms from the actual runs
+### Waveforms from the simulation runs
 
 Rendered straight from the testbench VCDs by `testbench/plot_waves.py`
 (`pip install matplotlib`, run after `make`):
@@ -151,21 +151,22 @@ the peak; one count per edge (4x) in both directions:
 
 ## Synthesis
 
-`synthesis/` holds a complete Quartus Prime Lite project (`.qpf`, `.qsf`
+`synthesis/` holds the Quartus Prime Lite project files (`.qpf`, `.qsf`
 with every pin assignment annotated with its physical header pin, and an
-`.sdc` with the 50 MHz clock constraint). See
+`.sdc` with the 50 MHz clock constraint). I haven't compiled it in Quartus or
+programmed a board yet, so synthesis results (resource use, timing) are still unknown. See
 [`synthesis/README.md`](../synthesis/README.md) for the build/program steps and
 the full pin map.
 
-## Hardware verification
+## Hardware bring-up (not done yet)
 
-Beyond simulation, bringing this up on real DE10-Lite hardware means:
+Everything above is simulation. Bringing this up on a real DE10-Lite would mean:
 programming the `.sof` over the on-board USB-Blaster (steps in
 [`synthesis/README.md`](../synthesis/README.md)); probing `PWM_OUT` (GPIO
 header JP1 pin 3) to confirm the 20 kHz carrier and glitch-free
 double-buffered duty updates; and wiring a real quadrature encoder to
 `ENC_A`/`ENC_B` (JP1 pins 1–2), noting that MAX 10 I/O is **3.3 V only** and
 not 5 V-tolerant — a 5 V encoder needs a level shifter or resistor divider.
-With `PWM_OUT` + `MOTOR_DIR` driving an H-bridge, the full PWM-to-motor and
-encoder-to-count signal chain exists on the FPGA, which is what the
-follow-on in-fabric PID closes the loop on.
+Once that works, `PWM_OUT` + `MOTOR_DIR` could drive an H-bridge and a
+follow-on PI/PID block could close the loop inside the FPGA. None of this has
+been done on hardware yet.
